@@ -1,13 +1,14 @@
 <?php
 namespace Sms;
 
+use Sms\Exceptions\SzrkException;
 
 class Szrk
 {
     /**
      * 神州软科Api SDK地址
      */
-    const SZRK_URL = 'http://api.bjszrk.com/sdk/';
+    const API = 'http://api.bjszrk.com/sdk/';
 
     /**
      * @var string 账号
@@ -28,34 +29,37 @@ class Szrk
      */
     private $encode = 'utf-8';
 
-//    /**
-//     * @var array 配置参数
-//     */
-//    private $config = [
-//        'sign'      => '忻州东大',       //短信签名
-//        'send_time' => '',       //定时发送
-//        'encode'    => 'utf-8',  // 短信内容字符集
-//    ];
-
-    public function setUser($user)
+    /**
+     * 账号设置
+     * @param string $user 账号名
+     * @param string $password 密码
+     * @return $this
+     */
+    public function account($user, $password)
     {
         $this->user = $user;
+        $this->pwd  = $password;
         return $this;
+
     }
 
-    public function setPwd($password)
-    {
-        $this->pwd = $password;
-        return $this;
-    }
-
-    public function setSign($sign)
+    /**
+     * 设置签名
+     * @param string $sign 签名
+     * @return $this
+     */
+    public function sign($sign)
     {
         $this->sign = $sign;
         return $this;
     }
 
-    public function setEncode($encode)
+    /**
+     * 设置短信内容字符集编码
+     * @param string $encode
+     * @return $this
+     */
+    public function encode($encode)
     {
         $this->encode = $encode;
         return $this;
@@ -67,11 +71,11 @@ class Szrk
      * @param string $content  发送内容
      * @param string $sendTime 定时发送时间
      * @return string 发送状态ID 数据字串格式
-     * @throws \Exception 当发送失败时
+     * @throws SzrkException
      */
     public function send($mobile, $content, $sendTime = '')
     {
-        $res = intval($this->httpPost(self::SZRK_URL.'BatchSend.aspx', [
+        $res = intval($this->httpPost(self::API.'BatchSend.aspx', [
             'CorpID'    => $this->user,
             'Pwd'       => $this->pwd,
             'Mobile'    => $mobile,
@@ -85,27 +89,13 @@ class Szrk
     }
 
     /**
-     * 剩余短信条数提醒
-     * 当剩余短信数等于设定值时，会自动发送一条短信至指定手机号
-     * @param int    $warn   发送短信剩余条数提醒的设定值
-     * @param string $mobile 接收短信提醒的手机号
-     */
-    public function warnSms($warn, $mobile)
-    {
-        if ($this->selSum() <= $warn) {
-            $content = '账号['.$this->user.']剩余短信数已不足'.$warn.'条,请及时充值。';
-            $this->send($mobile, $content);
-        }
-    }
-
-    /**
      * 获取短信剩余条数
      * @return int 剩余条数
-     * @throws \Exception
+     * @throws SzrkException
      */
     public function selSum()
     {
-        $res = intval($this->httpPost(self::SZRK_URL.'SelSum.aspx', [
+        $res = intval($this->httpPost(self::API.'SelSum.aspx', [
             'CorpID'    => $this->user,
             'Pwd'       => $this->pwd
         ]));
@@ -116,7 +106,7 @@ class Szrk
      * 检查返回值错误
      * @param int $res 接口返回值
      * @return bool
-     * @throws \Exception
+     * @throws SzrkException
      */
     private function check($res)
     {
@@ -135,7 +125,7 @@ class Szrk
             -104  => '短信内容包含关键字',
         ];
         if ($res < 0) {
-            throw new \Exception($errorCode[$res], $res);
+            throw new SzrkException($errorCode[$res], $res);
         }
 
         return $res;
